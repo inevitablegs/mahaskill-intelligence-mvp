@@ -1,0 +1,13 @@
+title,district,sector,posted_date,description,source
+EV Service Technician,Pune,Automotive / EV,2026-08-12,"Inspect EV systems, perform EV diagnostics, read CAN bus signals, support battery management systems (BMS), follow automotive safety procedures.",synthetic_demo
+Battery Systems Associate,Pune,Automotive / EV,2026-08-18,"Support battery management systems, test power electronics and document electric vehicle diagnostics.",synthetic_demo
+Embedded Firmware Engineer,Pune,Automotive / EV,2026-08-21,"Develop embedded C firmware for microcontrollers, use CAN bus tools, and follow functional and automotive safety practices.",synthetic_demo
+EV Test Engineer,Nashik,Automotive / EV,2026-08-10,"Run EV diagnostics, validate battery management systems and test power electronics on vehicle platforms.",synthetic_demo
+Automotive Technician,Nashik,Automotive / EV,2026-08-19,"Perform vehicle diagnostics, use CAN bus tools, inspect electrical systems and apply automotive safety procedures.",synthetic_demo
+EV Assembly Quality Associate,Nagpur,Automotive / EV,2026-08-15,"Support electric vehicle assembly, basic embedded systems checks, battery management system checks and quality documentation.",synthetic_demo
+Python Backend Developer,Pune,IT / ITeS,2026-08-11,"Build Python services, SQL data models, REST APIs and cloud deployment pipelines using Docker.",synthetic_demo
+Frontend Developer,Pune,IT / ITeS,2026-08-17,"Build React interfaces, connect REST APIs, use SQL-backed applications and support cloud deployment.",synthetic_demo
+Data Analyst,Nashik,IT / ITeS,2026-08-14,"Use Python, SQL and data analytics to clean operational datasets and create reports.",synthetic_demo
+Full Stack Developer,Nagpur,IT / ITeS,2026-08-20,"Develop React applications and Python REST APIs, manage SQL databases and deploy services to the cloud.",synthetic_demo
+Cloud Support Associate,Nagpur,IT / ITeS,2026-08-22,"Support cloud deployment, Docker-based services, SQL troubleshooting and Python automation.",synthetic_demo
+Data Engineer Intern,Nashik,IT / ITeS,2026-08-25,"Use Python, SQL and data analytics workflows to transform datasets and maintain reporting pipelines.",synthetic_demo

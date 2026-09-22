@@ -1,0 +1,7 @@
+name,district,sector,qualification,seats,trainers,equipment_notes
+EV Fundamentals & Safety,Pune,Automotive / EV,Certificate,30,2,Basic EV training rigs; equipment inventory requires validation.
+Automotive Electrical Systems,Nashik,Automotive / EV,Certificate,24,2,Electrical test benches; equipment inventory requires validation.
+EV Service & Diagnostics,Nagpur,Automotive / EV,Certificate,20,1,Diagnostic scan tools; BMS trainer availability to verify.
+Python & Backend Development,Pune,IT / ITeS,Certificate,40,3,Developer lab; cloud account access varies.
+Web Development with React,Nagpur,IT / ITeS,Certificate,35,2,Web development lab.
+Data Analytics with Python,Nashik,IT / ITeS,Certificate,30,2,Computer lab; datasets for practice.

@@ -1,0 +1,16 @@
+course_name,skill_name,coverage
+EV Fundamentals & Safety,Automotive safety,full
+EV Fundamentals & Safety,Power electronics,partial
+Automotive Electrical Systems,Automotive safety,full
+Automotive Electrical Systems,Embedded C,partial
+EV Service & Diagnostics,EV diagnostics,full
+EV Service & Diagnostics,CAN bus,partial
+Python & Backend Development,Python,full
+Python & Backend Development,SQL,full
+Python & Backend Development,REST APIs,full
+Python & Backend Development,Cloud deployment,partial
+Web Development with React,React,full
+Web Development with React,REST APIs,partial
+Data Analytics with Python,Python,full
+Data Analytics with Python,SQL,full
+Data Analytics with Python,Data analytics,full

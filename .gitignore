@@ -22,5 +22,10 @@ Thumbs.db
 *.tmp
 *.bak
 
-*/node_modules
+# Node / Build outputs
+node_modules/
+*/node_modules/
+dist/
+*/dist/
+.vite/
 

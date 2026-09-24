@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   GraduationCap, School, Landmark, RotateCcw, Sparkles,
   LayoutDashboard, MapPin, CircleAlert, Workflow, ChevronRight,
-  ShieldCheck, Cpu, Database, BarChart3
+  ShieldCheck, Cpu, Database, BarChart3, Menu, X
 } from 'lucide-react';
 
 import CandidatePortal from './components/CandidatePortal';
@@ -21,6 +21,7 @@ export default function App() {
   const [selectedDistrict, setSelectedDistrict] = useState('Pune');
   const [showArchModal, setShowArchModal] = useState(false);
   const [geminiActive, setGeminiActive] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/health`)
@@ -83,16 +84,34 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="brand" onClick={() => setShowArchModal(true)} style={{ cursor: 'pointer' }}>
-          <div className="brand-mark">
-            <Cpu size={24} />
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          className="sidebar-backdrop" 
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar (Desktop sticky & Mobile off-canvas drawer) */}
+      <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-header-row">
+          <div className="brand" onClick={() => { setShowArchModal(true); setMobileMenuOpen(false); }} style={{ cursor: 'pointer' }}>
+            <div className="brand-mark">
+              <Cpu size={24} />
+            </div>
+            <div>
+              <strong>MahaSkill</strong>
+              <span>INTELLIGENCE 3.0</span>
+            </div>
           </div>
-          <div>
-            <strong>MahaSkill</strong>
-            <span>INTELLIGENCE 3.0</span>
-          </div>
+          <button 
+            className="sidebar-close-btn" 
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <div className="side-label">3 STAKEHOLDER DASHBOARDS</div>
@@ -100,7 +119,10 @@ export default function App() {
           <button
             key={item.id}
             className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-            onClick={() => setActiveView(item.id)}
+            onClick={() => {
+              setActiveView(item.id);
+              setMobileMenuOpen(false);
+            }}
           >
             <span className="nav-icon-wrap">{item.icon}</span>
             <div className="nav-text-col">
@@ -118,7 +140,10 @@ export default function App() {
           <button
             key={item.id}
             className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-            onClick={() => setActiveView(item.id)}
+            onClick={() => {
+              setActiveView(item.id);
+              setMobileMenuOpen(false);
+            }}
           >
             <span className="nav-icon-wrap">{item.icon}</span>
             <div className="nav-text-col">
@@ -132,7 +157,7 @@ export default function App() {
         ))}
 
         <div className="sidebar-bottom">
-          <button className="arch-blueprint-btn" onClick={() => setShowArchModal(true)}>
+          <button className="arch-blueprint-btn" onClick={() => { setShowArchModal(true); setMobileMenuOpen(false); }}>
             <Workflow size={16} /> Technical Flow Blueprint
           </button>
 
@@ -151,18 +176,31 @@ export default function App() {
         {/* Top Navbar */}
         <header className="topbar">
           <div className="topbar-left">
+            <button 
+              className="mobile-menu-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation drawer"
+            >
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            <div className="topbar-brand-mobile" onClick={() => setShowArchModal(true)}>
+              <Cpu size={18} className="text-purple" />
+              <strong>MahaSkill <span>3.0</span></strong>
+            </div>
+
             <span className="topbar-breadcrumb">
-              Maharashtra Skill Development Ecosystem ➔ <strong>{allNav.find(n => n.id === activeView)?.label}</strong>
+              Maharashtra Skill Ecosystem ➔ <strong>{allNav.find(n => n.id === activeView)?.label}</strong>
             </span>
           </div>
 
           <div className="topbar-right">
-            <button className="btn btn-outline btn-sm" onClick={() => setShowArchModal(true)}>
-              <Workflow size={14} /> Technical Flow Blueprint
+            <button className="btn btn-outline btn-sm topbar-bp-btn" onClick={() => setShowArchModal(true)}>
+              <Workflow size={14} /> <span className="bp-btn-label">Architecture</span>
             </button>
             <div className="state-badge">
               <span className="state-flag">🏛️</span>
-              <span>Govt. of Maharashtra</span>
+              <span className="state-badge-text">Govt. of Maharashtra</span>
             </div>
           </div>
         </header>
@@ -202,6 +240,54 @@ export default function App() {
             <AIExtractionPlayground />
           )}
         </div>
+
+        {/* Mobile Quick Bottom Navigation */}
+        <nav className="mobile-bottom-nav">
+          <button 
+            className={`bottom-nav-item ${activeView === 'candidate' ? 'active' : ''}`}
+            onClick={() => setActiveView('candidate')}
+            title="Candidates Portal"
+          >
+            <GraduationCap size={20} />
+            <span>Candidate</span>
+          </button>
+
+          <button 
+            className={`bottom-nav-item ${activeView === 'institute' ? 'active' : ''}`}
+            onClick={() => setActiveView('institute')}
+            title="Institutes Dashboard"
+          >
+            <School size={20} />
+            <span>Institute</span>
+          </button>
+
+          <button 
+            className={`bottom-nav-item ${activeView === 'government' ? 'active' : ''}`}
+            onClick={() => setActiveView('government')}
+            title="Government Dashboard"
+          >
+            <Landmark size={20} />
+            <span>Govt</span>
+          </button>
+
+          <button 
+            className={`bottom-nav-item ${activeView === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveView('analytics')}
+            title="Analytics"
+          >
+            <BarChart3 size={20} />
+            <span>Analytics</span>
+          </button>
+
+          <button 
+            className={`bottom-nav-item ${['feedback', 'ai_playground'].includes(activeView) ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(true)}
+            title="More Options"
+          >
+            <Sparkles size={20} />
+            <span>More</span>
+          </button>
+        </nav>
       </main>
 
       {/* Architecture Overview Modal */}

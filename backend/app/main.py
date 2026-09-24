@@ -5,6 +5,8 @@ from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File
 import pypdf
 import io
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -458,3 +460,25 @@ def review(recommendation_id: int, payload: ReviewRequest, db: Session = Depends
     rec.status = payload.status
     db.commit()
     return {"id": rec.id, "status": rec.status}
+
+
+# ── Render Full-Stack Serving ─────────────────────────────────
+
+# If we are running on Render (or locally) and the frontend has been built,
+# we serve the React frontend directly from FastAPI so they run on a single port.
+frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "dist")
+frontend_dist = os.path.normpath(frontend_dist)
+
+if os.path.exists(frontend_dist):
+    # Serve assets directly
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    # Catch-all route to serve the SPA (React handles its own routing)
+    @app.api_route("/{path_name:path}", methods=["GET"])
+    def catch_all(path_name: str):
+        file_path = os.path.join(frontend_dist, path_name)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))

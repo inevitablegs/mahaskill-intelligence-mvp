@@ -537,3 +537,488 @@ def analyze(db: Session, district=None, sector=None):
                      "rationale": f"Detected in {gap['posting_count']} of {len(jobs)} synthetic demo postings ({gap['posting_share_pct']}%). Current mapped course coverage: {gap['coverage']}. Validate with employers and training providers.",
                      "status": "suggested", "demo_only": True})
     return {"jobs": jobs, "courses": courses, "demand": demand, "gaps": gaps, "recommendations": recs}
+    return {"jobs": jobs, "courses": courses, "demand": demand, "gaps": gaps, "recommendations": recs}
+
+
+# ── Dashboard-Specific Intelligence Engines ───────────────────
+
+from ..models import (
+    JobRole, RoleSkill, Institute, LabEquipment,
+    TrainerProfile, BatchPerformance, EmployerOutcome,
+)
+from .gemini_nlp import (
+    extract_skills_from_text,
+    generate_career_pathway,
+    analyze_curriculum_gap,
+    generate_policy_insights,
+    is_gemini_available,
+)
+
+
+# 1. Candidate Portal Intelligence
+def get_candidate_roles(db: Session, sector_id: str | None = None):
+    q = select(JobRole)
+    if sector_id:
+        q = q.where(JobRole.sector_id == sector_id)
+    roles = db.scalars(q).all()
+    results = []
+    for r in roles:
+        skills = db.scalars(select(RoleSkill).where(RoleSkill.role_id == r.id)).all()
+        results.append({
+            "id": r.id,
+            "role_code": r.role_code,
+            "title": r.title,
+            "sector_id": r.sector_id,
+            "sector_name": r.sector_name,
+            "qualification": r.qualification,
+            "experience_level": r.experience_level,
+            "salary_range": r.salary_range,
+            "demand_level": r.demand_level,
+            "emerging_status": r.emerging_status,
+            "description": r.description,
+            "skills": [
+                {
+                    "name": s.skill_name,
+                    "category": s.category,
+                    "importance": s.importance,
+                    "proficiency": s.proficiency_expected,
+                }
+                for s in skills
+            ],
+        })
+    return results
+
+
+def assess_candidate(db: Session, data: dict):
+    """
+    Evaluates candidate skills vs role requirements, calculates gap score,
+    and returns a personalized pathway + recommended courses + matching jobs.
+    """
+    target_role_id = data.get("target_role_id")
+    target_title = data.get("target_role_title", "")
+    current_skills = list(data.get("current_skills", []))
+    raw_text = data.get("resume_or_bio_text", "")
+    district = data.get("district", "Pune")
+
+    # If raw resume/bio text is provided, extract skills using Gemini / NLP
+    if raw_text:
+        extracted = extract_skills_from_text(raw_text)
+        for s in extracted:
+            s_name = s.get("skill") if isinstance(s, dict) else str(s)
+            if s_name and s_name.lower() not in [x.lower() for x in current_skills]:
+                current_skills.append(s_name)
+
+    # Find the target role
+    role = None
+    if target_role_id:
+        role = db.scalar(select(JobRole).where(JobRole.id == target_role_id))
+    elif target_title:
+        role = db.scalar(select(JobRole).where(JobRole.title.ilike(f"%{target_title}%")))
+    
+    if not role:
+        # Fallback to first role
+        role = db.scalar(select(JobRole).limit(1))
+
+    if not role:
+        return {"error": "No job roles available in knowledge base."}
+
+    role_skills = db.scalars(select(RoleSkill).where(RoleSkill.role_id == role.id)).all()
+    
+    # Calculate match & missing
+    matched_skills = []
+    missing_skills = []
+    curr_lower = [s.lower().strip() for s in current_skills]
+
+    for rs in role_skills:
+        rs_lower = rs.skill_name.lower().strip()
+        matched = False
+        for c in curr_lower:
+            if c in rs_lower or rs_lower in c:
+                matched = True
+                break
+        
+        skill_dict = {
+            "name": rs.skill_name,
+            "category": rs.category,
+            "importance": rs.importance,
+            "proficiency": rs.proficiency_expected,
+        }
+        if matched:
+            matched_skills.append(skill_dict)
+        else:
+            missing_skills.append(skill_dict)
+
+    total_required = len(role_skills)
+    match_pct = round(len(matched_skills) / max(total_required, 1) * 100, 1) if total_required else 0
+    gap_score = round(100 - match_pct, 1)
+
+    # Generate personalized pathway using Gemini or fallback
+    pathway = generate_career_pathway(
+        target_role=role.title,
+        current_skills=current_skills,
+        missing_skills=[s["name"] for s in missing_skills],
+    )
+
+    # Find matched courses in the district/sector
+    courses = db.scalars(select(Course).where(Course.sector.ilike(f"%{role.sector_name[:8]}%"))).all()
+    if not courses:
+        courses = db.scalars(select(Course).limit(3)).all()
+
+    # Find matched job postings
+    jobs = db.scalars(select(JobPosting).where(JobPosting.sector.ilike(f"%{role.sector_name[:8]}%"))).all()
+    if not jobs:
+        jobs = db.scalars(select(JobPosting).limit(3)).all()
+
+    return {
+        "candidate_name": data.get("candidate_name", "Trainee"),
+        "district": district,
+        "education": data.get("education", "Diploma"),
+        "target_role": {
+            "id": role.id,
+            "title": role.title,
+            "sector": role.sector_name,
+            "salary_range": role.salary_range,
+            "qualification": role.qualification,
+            "demand_level": role.demand_level,
+        },
+        "all_candidate_skills": current_skills,
+        "matched_skills": matched_skills,
+        "missing_skills": missing_skills,
+        "match_percentage": match_pct,
+        "skill_gap_score": gap_score,
+        "learning_pathway": pathway,
+        "recommended_courses": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "district": c.district,
+                "sector": c.sector,
+                "seats": c.seats,
+                "qualification": c.qualification,
+            }
+            for c in courses[:4]
+        ],
+        "matching_jobs": [
+            {
+                "id": j.id,
+                "title": j.title,
+                "district": j.district,
+                "sector": j.sector,
+                "posted_date": j.posted_date,
+            }
+            for j in jobs[:4]
+        ],
+        "ai_powered": is_gemini_available(),
+    }
+
+
+# 2. Institutes Dashboard Intelligence
+def get_institute_overview(db: Session, district_id: str | None = None):
+    q_inst = select(Institute)
+    q_eq = select(LabEquipment)
+    q_tr = select(TrainerProfile)
+    q_bp = select(BatchPerformance)
+
+    if district_id:
+        q_inst = q_inst.where(Institute.district_id == district_id)
+        q_eq = q_eq.where(LabEquipment.district_id == district_id)
+        q_tr = q_tr.where(TrainerProfile.district_id == district_id)
+
+    institutes = db.scalars(q_inst).all()
+    equipment_gaps = db.scalars(q_eq).all()
+    trainers = db.scalars(q_tr).all()
+    batches = db.scalars(q_bp).all()
+
+    total_capacity = sum(i.capacity for i in institutes)
+    total_enrolled = sum(i.enrolled for i in institutes)
+    avg_placement = round(sum(i.placement_rate for i in institutes) / max(len(institutes), 1), 1)
+
+    return {
+        "total_institutes": len(institutes),
+        "total_capacity": total_capacity,
+        "total_enrolled": total_enrolled,
+        "capacity_utilization_pct": round(total_enrolled / max(total_capacity, 1) * 100, 1),
+        "avg_placement_rate": avg_placement,
+        "total_equipment_gaps": len(equipment_gaps),
+        "trainers_requiring_upskill": len([t for t in trainers if "Upskilling" in t.training_status or t.upskilling_needed]),
+        "total_batches_tracked": len(batches),
+        "institutes": [
+            {
+                "id": i.id,
+                "code": i.institute_code,
+                "name": i.name,
+                "district": i.district_name,
+                "type": i.institute_type,
+                "capacity": i.capacity,
+                "enrolled": i.enrolled,
+                "placement_rate": i.placement_rate,
+            }
+            for i in institutes
+        ],
+    }
+
+
+def get_institute_course_recommendations(db: Session, district_id: str):
+    """
+    Identifies high-undersupply sectors in this district and recommends concrete new courses to launch.
+    """
+    plan = generate_training_plan(db, district_id)
+    scale_up = plan.get("scale_up", [])
+    reduce = plan.get("review_reduce", [])
+
+    recommended_courses = []
+    for item in scale_up:
+        sector_name = item["sector_name"]
+        mismatch = item["mismatch_score"]
+        # Find matching job roles
+        roles = db.scalars(select(JobRole).where(JobRole.sector_name.ilike(f"%{sector_name[:10]}%"))).all()
+        role_titles = [r.title for r in roles] if roles else [f"{sector_name} Specialist"]
+        urgency = "Immediate" if mismatch > 80 else "High"
+        rationale = f"Severe undersupply ({mismatch}%). Industry demand ({item['industry_size']:,}) outstrips MSSDS training capacity ({item['mssds_training']:,})."
+
+        recommended_courses.append({
+            "sector_name": sector_name,
+            "mismatch_score": mismatch,
+            "urgency": urgency,
+            "industry_demand": item["industry_size"],
+            "current_mssds_training": item["mssds_training"],
+            "recommended_course_title": f"Advanced Certificate in {role_titles[0]}",
+            "target_roles": role_titles,
+            "recommended_seat_expansion": max(50, int(item["industry_size"] * 0.15)),
+            "action": "Launch New Program / Expand Intake",
+            "rationale": rationale,
+        })
+
+    return {
+        "district_name": plan.get("district_name", district_id),
+        "recommended_new_courses": recommended_courses,
+        "curtailment_advisories": [
+            {
+                "sector_name": r["sector_name"],
+                "mismatch_score": r["mismatch_score"],
+                "recommendation": "Reduce intake or modernize curriculum to prevent graduate underemployment.",
+                "current_training": r["mssds_training"],
+                "industry_absorption": r["industry_size"],
+            }
+            for r in reduce
+        ],
+    }
+
+
+def get_curriculum_updates(db: Session, district_id: str, sector_name: str | None = None):
+    """
+    Compares traditional curriculum with modern industry expectations (Gemini-powered).
+    """
+    # Sample curriculum modules per sector
+    sample_modules = {
+        "Automotive": ["IC Engine teardown", "Lead-acid battery servicing", "Manual transmission overhaul", "Conventional carburettor tuning"],
+        "Capital Goods": ["Manual lathe operation", "2D Orthographic drawing", "Basic 3-axis milling", "Vernier gauge reading"],
+        "IT": ["Core Java syntax", "HTML 4 / CSS 2", "MySQL basic queries", "Desktop app deployment"],
+        "Electronics": ["Relay wiring", "Analog oscilloscopes", "Through-hole soldering", "Discrete transistor logic"],
+    }
+    key = "Automotive"
+    if sector_name:
+        for k in sample_modules:
+            if k.lower() in sector_name.lower():
+                key = k
+                break
+
+    current_topics = sample_modules.get(key, ["Standard foundational procedures", "Manual equipment operations", "Legacy safety standards"])
+
+    analysis = analyze_curriculum_gap(
+        course_name=f"{sector_name or 'Industry'} Technical Training",
+        sector=sector_name or "Automotive and Auto Components",
+        current_topics=current_topics,
+    )
+    return analysis
+
+
+def get_institute_trainers(db: Session, district_id: str | None = None):
+    q = select(TrainerProfile)
+    if district_id:
+        q = q.where(TrainerProfile.district_id == district_id)
+    trainers = db.scalars(q).all()
+    return [
+        {
+            "id": t.id,
+            "name": t.trainer_name,
+            "institute": t.institute_name,
+            "district": t.district_name,
+            "sector": t.sector_name,
+            "specialization": t.specialization,
+            "experience_years": t.experience_years,
+            "certified": t.certified,
+            "upskilling_needed": t.upskilling_needed,
+            "status": t.training_status,
+        }
+        for t in trainers
+    ]
+
+
+def get_institute_lab_gaps(db: Session, district_id: str | None = None):
+    q = select(LabEquipment)
+    if district_id:
+        q = q.where(LabEquipment.district_id == district_id)
+    items = db.scalars(q).all()
+    total_est_cost = sum(eq.estimated_cost_inr * eq.required_units for eq in items)
+    return {
+        "total_estimated_investment_inr": total_est_cost,
+        "items": [
+            {
+                "id": eq.id,
+                "institute": eq.institute_name,
+                "district": eq.district_name,
+                "sector": eq.sector_name,
+                "equipment_name": eq.equipment_name,
+                "status": eq.status,
+                "required_units": eq.required_units,
+                "estimated_cost_inr": eq.estimated_cost_inr,
+                "total_cost": eq.estimated_cost_inr * eq.required_units,
+                "impact": eq.impact_on_training,
+            }
+            for eq in items
+        ],
+    }
+
+
+def get_batch_performance(db: Session, district_id: str | None = None):
+    q = select(BatchPerformance)
+    batches = db.scalars(q).all()
+    return [
+        {
+            "id": b.id,
+            "batch_code": b.batch_code,
+            "institute": b.institute_name,
+            "course": b.course_name,
+            "sector": b.sector_name,
+            "district": b.district_name,
+            "enrolled": b.enrolled_count,
+            "certified": b.certified_count,
+            "placed": b.placed_count,
+            "pass_rate": b.pass_rate,
+            "placement_rate": b.placement_rate,
+            "avg_salary_pm": b.avg_salary_pm,
+        }
+        for b in batches
+    ]
+
+
+# 3. Government Dashboard Intelligence
+def get_government_kpis(db: Session):
+    overview = state_overview(db)
+    all_districts = db.scalars(select(District)).all()
+    sectors = db.scalars(select(Sector)).all()
+    institutes = db.scalars(select(Institute)).all()
+
+    total_demand = overview.get("total_industry_employees", 0)
+    total_supply = overview.get("total_trainees", 0)
+    total_aspiration = overview.get("total_aspirants", 0)
+    alignment_index = round(min(total_supply, total_demand) / max(total_demand, 1) * 100, 1)
+
+    return {
+        "total_districts_tracked": len(all_districts),
+        "total_sectors_in_taxonomy": len(sectors),
+        "total_partner_institutes": len(institutes),
+        "state_total_industry_demand": total_demand,
+        "state_total_training_supply": total_supply,
+        "state_total_aspirations": total_aspiration,
+        "state_alignment_index_pct": alignment_index,
+        "critical_undersupply_clusters": overview.get("critical_clusters_count", 18),
+        "district_summaries": overview["district_summaries"],
+    }
+
+
+def simulate_policy(db: Session, district_id: str, seat_reallocations: dict, additional_funding_lakhs: float):
+    """
+    Simulates the impact of policy changes:
+    - Moving seats from oversupplied sectors to undersupplied sectors
+    - Injecting additional budget for labs/trainers
+    """
+    district_data = analyze_district(db, district_id)
+    sectors = district_data.get("sectors", [])
+
+    simulated_sectors = []
+    baseline_critical_gaps = 0
+    new_critical_gaps = 0
+
+    for s in sectors:
+        s_name = s["sector_name"]
+        baseline_mismatch = s["mismatch_score"]
+        if s["gap_type"] == "critical_undersupply":
+            baseline_critical_gaps += 1
+
+        delta_seats = seat_reallocations.get(s_name, 0)
+        new_training = max(0, s["mssds_training"] + delta_seats)
+        new_mismatch = compute_mismatch(s["industry_size"], new_training)
+        new_gap_type = classify_gap(new_mismatch)
+
+        if new_gap_type == "critical_undersupply":
+            new_critical_gaps += 1
+
+        simulated_sectors.append({
+            "sector_name": s_name,
+            "baseline_training": s["mssds_training"],
+            "simulated_training": new_training,
+            "delta_seats": delta_seats,
+            "baseline_mismatch": baseline_mismatch,
+            "simulated_mismatch": new_mismatch,
+            "gap_improvement": round(baseline_mismatch - new_mismatch, 1),
+            "new_gap_type": new_gap_type,
+            "new_severity_label": severity_label(new_gap_type),
+        })
+
+    estimated_graduates_placed_gain = sum(max(0, delta) for delta in seat_reallocations.values()) * 0.75
+
+    return {
+        "district_id": district_id,
+        "district_name": district_data.get("district_name", district_id),
+        "additional_funding_lakhs": additional_funding_lakhs,
+        "baseline_critical_undersupply_sectors": baseline_critical_gaps,
+        "projected_critical_undersupply_sectors": new_critical_gaps,
+        "gap_reduction_count": baseline_critical_gaps - new_critical_gaps,
+        "projected_additional_placements": int(estimated_graduates_placed_gain),
+        "simulated_sectors": simulated_sectors,
+    }
+
+
+# 4. Continuous Update Loop & Employer Outcomes
+def get_outcomes_intelligence(db: Session):
+    outcomes = db.scalars(select(EmployerOutcome)).all()
+    if not outcomes:
+        return {"outcomes": [], "stats": {}}
+
+    total_interviews = sum(o.interviews_held for o in outcomes)
+    total_hired = sum(o.candidates_hired for o in outcomes)
+    avg_satisfaction = round(sum(o.satisfaction_score for o in outcomes) / len(outcomes), 2)
+    avg_salary = int(sum(o.avg_salary_inr for o in outcomes) / len(outcomes))
+    avg_retention = round(sum(o.retention_rate_pct for o in outcomes) / len(outcomes), 1)
+
+    return {
+        "stats": {
+            "total_employers_reporting": len(outcomes),
+            "total_candidates_interviewed": total_interviews,
+            "total_candidates_hired": total_hired,
+            "interview_to_hire_ratio_pct": round(total_hired / max(total_interviews, 1) * 100, 1),
+            "avg_employer_satisfaction": avg_satisfaction,
+            "avg_starting_salary_inr": avg_salary,
+            "avg_retention_rate_pct": avg_retention,
+        },
+        "outcomes": [
+            {
+                "id": o.id,
+                "employer": o.employer_name,
+                "sector": o.sector_name,
+                "district": o.district_name,
+                "role": o.job_role,
+                "interviews": o.interviews_held,
+                "hired": o.candidates_hired,
+                "satisfaction": o.satisfaction_score,
+                "salary": o.avg_salary_inr,
+                "skills_hired": o.skills_hired,
+                "reported_skill_gaps": o.reported_skill_gaps,
+                "feedback": o.employer_feedback,
+                "retention": o.retention_rate_pct,
+            }
+            for o in outcomes
+        ],
+    }

@@ -26,6 +26,7 @@ from .models import (
 from .services.intelligence import extract_and_store_skills
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent      # project root
+DATA_DIR = ROOT_DIR / "data"
 LEGACY_DATA_DIR = Path(__file__).resolve().parent.parent / "data"  # backend/data/
 
 
@@ -41,7 +42,7 @@ def seed_real_data(db):
         return  # already seeded
 
     # 1. Source Register
-    csv_path = ROOT_DIR / "Source_Register.csv"
+    csv_path = DATA_DIR / "Source_Register.csv"
     if csv_path.exists():
         for row in _read_csv(csv_path):
             db.add(SourceDocument(
@@ -55,7 +56,7 @@ def seed_real_data(db):
         db.commit()
 
     # 2. District Master
-    csv_path = ROOT_DIR / "District_Master.csv"
+    csv_path = DATA_DIR / "District_Master.csv"
     if csv_path.exists():
         for row in _read_csv(csv_path):
             db.add(District(
@@ -70,7 +71,7 @@ def seed_real_data(db):
         db.commit()
 
     # 3. Sector Taxonomy
-    csv_path = ROOT_DIR / "Sector_Taxonomy.csv"
+    csv_path = DATA_DIR / "Sector_Taxonomy.csv"
     if csv_path.exists():
         for row in _read_csv(csv_path):
             db.add(Sector(
@@ -83,7 +84,7 @@ def seed_real_data(db):
         db.commit()
 
     # 4. District Indicators
-    csv_path = ROOT_DIR / "District_Indicators.csv"
+    csv_path = DATA_DIR / "District_Indicators.csv"
     if csv_path.exists():
         for row in _read_csv(csv_path):
             try:

@@ -27,9 +27,10 @@ export default function CandidatePortal({ selectedDistrict, setSelectedDistrict 
       .then(data => {
         setRoles(data);
         if (data.length > 0) {
-          setSelectedRole(data[0]);
+          const fullStackRole = data.find(r => r.title.toLowerCase().includes('full stack')) || data[0];
+          setSelectedRole(fullStackRole);
           // Default pre-select some skills to make it quick
-          setSelectedSkills(data[0].skills.slice(0, 2).map(s => s.name));
+          setSelectedSkills(fullStackRole.skills.slice(0, 2).map(s => s.name));
         }
       })
       .catch(err => console.error("Error loading roles:", err));

@@ -3,3 +3,5 @@ uvicorn[standard]>=0.27,<1.0
 sqlalchemy>=2.0,<3.0
 pydantic>=2.6,<3.0
 python-multipart>=0.0.9
+pypdf>=4.1.0
+google-generativeai>=0.4.0

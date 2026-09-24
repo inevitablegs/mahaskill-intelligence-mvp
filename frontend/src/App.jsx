@@ -98,11 +98,11 @@ export default function App() {
         <div className="sidebar-header-row">
           <div className="brand" onClick={() => { setShowArchModal(true); setMobileMenuOpen(false); }} style={{ cursor: 'pointer' }}>
             <div className="brand-mark">
-              <Cpu size={24} />
+              <img src="/brand-icon.png" alt="MahaSkill Logo" className="brand-logo-img" />
             </div>
             <div>
               <strong>MahaSkill</strong>
-              <span>INTELLIGENCE 3.0</span>
+              <span>INTELLIGENCE</span>
             </div>
           </div>
           <button 
@@ -185,8 +185,8 @@ export default function App() {
             </button>
 
             <div className="topbar-brand-mobile" onClick={() => setShowArchModal(true)}>
-              <Cpu size={18} className="text-purple" />
-              <strong>MahaSkill <span>3.0</span></strong>
+              <img src="/brand-icon.png" alt="MahaSkill" className="brand-logo-img-mobile" />
+              <strong>MahaSkill <span>Intelligence</span></strong>
             </div>
 
             <span className="topbar-breadcrumb">

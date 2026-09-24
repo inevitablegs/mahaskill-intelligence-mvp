@@ -223,6 +223,58 @@ Return ONLY JSON."""
     return _fallback_assess_candidate(candidate_skills, target_sector, market_demand)
 
 
+# ── Matching Jobs and Courses ────────────────────────────────
+
+def recommend_courses_and_jobs(
+    target_role: str,
+    current_skills: list[str],
+    courses_data: list[dict],
+    jobs_data: list[dict]
+) -> dict:
+    """Uses Gemini to pick the best matching courses and jobs for the candidate."""
+    model = _get_model()
+    if not model or not courses_data or not jobs_data:
+        # Fallback to returning the first 3
+        return {
+            "course_ids": [c["id"] for c in courses_data[:3]],
+            "job_ids": [j["id"] for j in jobs_data[:3]]
+        }
+
+    prompt = f"""You are an expert AI Career Counselor.
+The candidate is aiming for the target role: "{target_role}".
+Their current skills are: {', '.join(current_skills)}
+
+I have a list of available training courses and open job postings.
+Based on the candidate's current skills and their target role, select up to 3 most relevant courses they should take to bridge their skill gaps, and up to 3 most relevant jobs they should apply to.
+
+Available Courses (JSON):
+{json.dumps(courses_data)}
+
+Available Jobs (JSON):
+{json.dumps(jobs_data)}
+
+Return ONLY a JSON object exactly in this format:
+{{
+  "course_ids": [1, 2],
+  "job_ids": [10, 11]
+}}
+Ensure the IDs you return exactly match the "id" fields from the provided lists. Do not include any other text."""
+
+    try:
+        response = model.generate_content(prompt)
+        result = _parse_json_response(response.text)
+        if isinstance(result, dict) and "course_ids" in result and "job_ids" in result:
+            return result
+    except Exception as e:
+        print(f"[Gemini] Course/Job recommendation error: {e}")
+
+    # Fallback
+    return {
+        "course_ids": [c["id"] for c in courses_data[:3]],
+        "job_ids": [j["id"] for j in jobs_data[:3]]
+    }
+
+
 def _fallback_assess_candidate(
     candidate_skills: list[str],
     target_sector: str,

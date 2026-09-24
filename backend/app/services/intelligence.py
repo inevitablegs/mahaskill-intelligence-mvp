@@ -551,6 +551,7 @@ from .gemini_nlp import (
     analyze_curriculum_gap,
     generate_policy_insights,
     is_gemini_available,
+    recommend_courses_and_jobs,
 )
 
 
@@ -659,14 +660,34 @@ def assess_candidate(db: Session, data: dict):
     )
 
     # Find matched courses in the district/sector
-    courses = db.scalars(select(Course).where(Course.sector.ilike(f"%{role.sector_name[:8]}%"))).all()
-    if not courses:
-        courses = db.scalars(select(Course).limit(3)).all()
+    first_word = role.sector_name.split(" ")[0]
+    all_courses = db.scalars(select(Course).where(Course.sector.ilike(f"%{first_word}%"))).all()
+    if not all_courses:
+        all_courses = db.scalars(select(Course)).all()
 
     # Find matched job postings
-    jobs = db.scalars(select(JobPosting).where(JobPosting.sector.ilike(f"%{role.sector_name[:8]}%"))).all()
-    if not jobs:
-        jobs = db.scalars(select(JobPosting).limit(3)).all()
+    all_jobs = db.scalars(select(JobPosting).where(JobPosting.sector.ilike(f"%{first_word}%"))).all()
+    if not all_jobs:
+        all_jobs = db.scalars(select(JobPosting)).all()
+
+    courses_data = [{"id": c.id, "name": c.name, "qualification": c.qualification} for c in all_courses]
+    jobs_data = [{"id": j.id, "title": j.title, "description": j.description} for j in all_jobs]
+
+    # Let Gemini pick the best ones
+    recommendations = recommend_courses_and_jobs(
+        target_role=role.title,
+        current_skills=current_skills,
+        courses_data=courses_data,
+        jobs_data=jobs_data
+    )
+
+    recommended_courses = [c for c in all_courses if c.id in recommendations.get("course_ids", [])]
+    if not recommended_courses:
+        recommended_courses = all_courses[:3]
+
+    matching_jobs = [j for j in all_jobs if j.id in recommendations.get("job_ids", [])]
+    if not matching_jobs:
+        matching_jobs = all_jobs[:3]
 
     return {
         "candidate_name": data.get("candidate_name", "Trainee"),
@@ -695,7 +716,7 @@ def assess_candidate(db: Session, data: dict):
                 "seats": c.seats,
                 "qualification": c.qualification,
             }
-            for c in courses[:4]
+            for c in recommended_courses
         ],
         "matching_jobs": [
             {
@@ -705,7 +726,7 @@ def assess_candidate(db: Session, data: dict):
                 "sector": j.sector,
                 "posted_date": j.posted_date,
             }
-            for j in jobs[:4]
+            for j in matching_jobs
         ],
         "ai_powered": is_gemini_available(),
     }

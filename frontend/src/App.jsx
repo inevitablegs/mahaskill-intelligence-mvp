@@ -14,7 +14,7 @@ import ContinuousFeedbackLoop from './components/ContinuousFeedbackLoop';
 import AIExtractionPlayground from './components/AIExtractionPlayground';
 import ArchitectureModal from './components/ArchitectureModal';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export default function App() {
   const [activeView, setActiveView] = useState('candidate'); // 'candidate' | 'institute' | 'government' | 'analytics' | 'feedback' | 'ai_playground'

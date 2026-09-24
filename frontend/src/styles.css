@@ -1742,3 +1742,251 @@ code {
   border-radius: 4px;
   color: var(--text-accent);
 }
+
+/* ── Candidate Portal ────────────────────────────────────── */
+.portal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.portal-header {
+  padding: 32px 40px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  color: #fff;
+}
+.candidate-gradient {
+  background: linear-gradient(135deg, #1e1b4b, #4c1d95, #7c3aed);
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4);
+}
+.portal-header-left h2 {
+  font: 800 28px var(--font-display);
+  margin: 12px 0 8px;
+  letter-spacing: -1px;
+}
+.portal-header-left p {
+  font-size: 14px;
+  color: #d8b4fe;
+  line-height: 1.5;
+  max-width: 600px;
+}
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.bg-purple-glow {
+  background: rgba(167, 139, 250, 0.2);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  color: #ddd6fe;
+}
+.portal-header-stat {
+  text-align: right;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 16px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+.stat-num {
+  font: 800 36px var(--font-display);
+  color: #fff;
+}
+.stat-lbl {
+  font-size: 11px;
+  color: #c4b5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.candidate-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.candidate-config-card {
+  position: sticky;
+  top: 24px;
+}
+.role-details-box {
+  background: var(--purple-50);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-top: 12px;
+}
+.role-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--purple-700);
+  margin-bottom: 6px;
+}
+.role-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.form-group-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.skills-checklist-section {
+  margin-bottom: 20px;
+}
+.section-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.skills-checkbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skill-checkbox-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 10px 12px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+.skill-checkbox-lbl:hover {
+  border-color: var(--purple-300);
+  background: var(--purple-50);
+}
+.skill-checkbox-lbl input {
+  accent-color: var(--purple-600);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.file-upload-zone {
+  border: 2px dashed var(--purple-300);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  background: var(--purple-50);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.file-upload-zone:hover {
+  background: #f5f3ff;
+  border-color: var(--purple-500);
+}
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--purple-600);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.file-upload-zone p {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.file-upload-zone input[type="file"] {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pathway-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 24px;
+  gap: 32px;
+}
+.pathway-tab {
+  background: none;
+  border: none;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pathway-tab:hover {
+  color: var(--text-primary);
+}
+.pathway-tab.tab-active {
+  color: var(--purple-600);
+}
+.pathway-tab.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--purple-600);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Candidate Mobile Responsiveness */
+@media (max-width: 1024px) {
+  .candidate-grid {
+    grid-template-columns: 1fr;
+  }
+  .candidate-config-card {
+    position: static;
+  }
+}
+@media (max-width: 768px) {
+  .portal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px;
+  }
+  .portal-header-stat {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .portal-header-left h2 {
+    font-size: 22px;
+  }
+  .form-group-row {
+    grid-template-columns: 1fr;
+  }
+  .pathway-tabs {
+    gap: 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 2px;
+  }
+}
